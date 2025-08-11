@@ -50,7 +50,7 @@ namespace FivePD.Common.Models
             private set
             {
                 this._stoppedVehicle = value;
-                this.StoppedVehicleNetworkId = value.NetworkId;
+                this.StoppedVehicleNetworkId = value?.NetworkId ?? 0;
             }
         }
     }
