@@ -6,6 +6,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace FivePD.Common.Extensions
 {
@@ -14,6 +15,8 @@ namespace FivePD.Common.Extensions
     /// </summary>
     public static class StringExtensions
     {
+        private static readonly Regex ParamRegex = new Regex(@"{{(?<key>[^{}()]+)(?:\((?<value>[^{}()]+)\))?}}", RegexOptions.Compiled);
+
         /// <summary>
         /// Replaces parameter identifiers with their values depending on its template.
         /// The template {{key}} will be converted to formatting + key.
@@ -26,36 +29,33 @@ namespace FivePD.Common.Extensions
         /// <returns>The new string with the replaced parameters.</returns>
         public static string ReplaceParams(this string text, Dictionary<string, string> parameters, string formattingReset = "")
         {
-            foreach (var item in parameters)
+            if (text is null)
             {
-                var startIndex = text.IndexOf("{{" + item.Key + "}}", StringComparison.Ordinal);
-                if (startIndex == -1)
-                {
-                    startIndex = text.IndexOf("{{" + item.Key + "(", StringComparison.Ordinal);
-                    for (var i = startIndex; i < text.Length; i++)
-                    {
-                        if (text[i] != ')')
-                        {
-                            continue;
-                        }
-
-                        var sub = text.Substring(startIndex, i - startIndex + 3);
-                        if (!sub.StartsWith("{{") || !sub.EndsWith("}}"))
-                        {
-                            continue;
-                        }
-
-                        var newValue = text.Substring(startIndex + 2 + item.Key.Length + 1, i - startIndex - item.Key.Length - 3);
-                        text = text.Replace(sub, item.Value + newValue + formattingReset);
-                    }
-                }
-                else
-                {
-                    text = text.Replace("{{" + item.Key + "}}", item.Value + formattingReset);
-                }
+                throw new ArgumentNullException(nameof(text));
             }
 
-            return text;
+            if (parameters is null)
+            {
+                throw new ArgumentNullException(nameof(parameters));
+            }
+
+            if (parameters.Count == 0)
+            {
+                return text;
+            }
+
+            return ParamRegex.Replace(text, match =>
+            {
+                var key = match.Groups["key"].Value;
+                if (!parameters.TryGetValue(key, out var replacement))
+                {
+                    return match.Value;
+                }
+
+                var valueGroup = match.Groups["value"];
+                var suffix = valueGroup.Success ? valueGroup.Value : string.Empty;
+                return replacement + suffix + formattingReset;
+            });
         }
     }
 }

@@ -1,15 +1,13 @@
-﻿// Copyright (c) GTAPoliceMods LLC. All Rights Reserved.
+// Copyright (c) GTAPoliceMods LLC. All Rights Reserved.
 //
 // All code and assets contained in this file are STRICTLY
 // the intellectual property of GTAPoliceMods unless otherwise
 // noted by a license provided. Do not copy or redistribute.
 
 using System;
-using System.Reflection;
 using System.Threading.Tasks;
 using FivePD.Gamemode.Server.API;
 using FivePD.Gamemode.Server.Interfaces;
-using Serilog.Core;
 
 namespace FivePD.Gamemode.IA.AmbientEvents
 {
@@ -24,7 +22,7 @@ namespace FivePD.Gamemode.IA.AmbientEvents
 
         public AmbientEvents(IAddonLoggerService logger)
         {
-            this._logger = logger;
+            this._logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         /**
@@ -32,7 +30,14 @@ namespace FivePD.Gamemode.IA.AmbientEvents
          */
         public Task OnStarted()
         {
-            this._logger.Information("I started!");
+            try
+            {
+                this._logger.Information("I started!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"AmbientEvents start logging failed: {ex}");
+            }
 
             return Task.CompletedTask;
         }
@@ -42,7 +47,14 @@ namespace FivePD.Gamemode.IA.AmbientEvents
          */
         public Task OnStopped()
         {
-            this._logger.Information("I stopped!");
+            try
+            {
+                this._logger.Information("I stopped!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"AmbientEvents stop logging failed: {ex}");
+            }
 
             return Task.CompletedTask;
         }

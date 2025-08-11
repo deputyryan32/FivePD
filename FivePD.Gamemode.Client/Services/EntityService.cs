@@ -16,8 +16,8 @@ namespace FivePD.Gamemode.Client.Services
     /// <inheritdoc />
     public class EntityService : IEntityService
     {
-        private readonly ILoggerService _logger;
         private const int DefaultTimeoutMs = 5000;
+        private readonly ILoggerService _logger;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EntityService"/> class.
@@ -25,6 +25,11 @@ namespace FivePD.Gamemode.Client.Services
         /// <param name="logger">The <see cref="ILoggerService"/> to use for logging.</param>
         public EntityService(ILoggerService logger)
         {
+            if (logger == null)
+            {
+                throw new ArgumentNullException(nameof(logger));
+            }
+
             this._logger = logger;
         }
 
@@ -36,7 +41,7 @@ namespace FivePD.Gamemode.Client.Services
             var timeout = BaseScript.Delay(DefaultTimeoutMs);
             while (!Cfx.API.HasModelLoaded(model))
             {
-                if (await Task.WhenAny(BaseScript.Delay(100), timeout) == timeout)
+                if (await Task.WhenAny(BaseScript.Delay(100), timeout).ConfigureAwait(false) == timeout)
                 {
                     this._logger.Warn("SpawnPed timed out for model {0}", model);
                     throw new TimeoutException("Timed out waiting for ped model to load");
@@ -56,14 +61,20 @@ namespace FivePD.Gamemode.Client.Services
                 tcs.TrySetResult(id);
             }));
 
-            var completed = await Task.WhenAny(tcs.Task, BaseScript.Delay(DefaultTimeoutMs));
+            var completed = await Task.WhenAny(tcs.Task, BaseScript.Delay(DefaultTimeoutMs)).ConfigureAwait(false);
             if (completed != tcs.Task)
             {
                 this._logger.Warn("SpawnVehicle timed out for model {0}", model);
                 throw new TimeoutException("Timed out waiting for vehicle spawn response");
             }
 
-            return (Vehicle)Entity.FromNetworkId(tcs.Task.Result);
+            var entity = Entity.FromNetworkId(tcs.Task.Result);
+            if (!(entity is Vehicle vehicle))
+            {
+                throw new InvalidOperationException("Spawned entity was not a vehicle");
+            }
+
+            return vehicle;
         }
 
         /// <inheritdoc />
@@ -75,7 +86,7 @@ namespace FivePD.Gamemode.Client.Services
             var timeout = BaseScript.Delay(DefaultTimeoutMs);
             while (!Cfx.API.HasModelLoaded(uintModel))
             {
-                if (await Task.WhenAny(BaseScript.Delay(100), timeout) == timeout)
+                if (await Task.WhenAny(BaseScript.Delay(100), timeout).ConfigureAwait(false) == timeout)
                 {
                     this._logger.Warn("SpawnProp timed out for model {0}", model);
                     throw new TimeoutException("Timed out waiting for prop model to load");
