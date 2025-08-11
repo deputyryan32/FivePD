@@ -53,6 +53,11 @@ namespace FivePD.Common.Builders
 
         public FPedBuilder WithFirstname(List<string> names)
         {
+            if (names == null || names.Count == 0)
+            {
+                throw new ArgumentException("Name collection cannot be null or empty", nameof(names));
+            }
+
             this.Firstname = names[this._random.Next(names.Count)].Trim();
             return this;
         }
@@ -65,6 +70,11 @@ namespace FivePD.Common.Builders
 
         public FPedBuilder WithLastname(List<string> names)
         {
+            if (names == null || names.Count == 0)
+            {
+                throw new ArgumentException("Name collection cannot be null or empty", nameof(names));
+            }
+
             this.Lastname = names[this._random.Next(names.Count)].Trim();
             return this;
         }
@@ -77,26 +87,9 @@ namespace FivePD.Common.Builders
 
         public FPedBuilder WithBirthdate()
         {
-            int[] monthsWith30Days = { 4, 6, 9, 11 };
-
             int year = this._random.Next(1960, 2001);
             int month = this._random.Next(1, 13);
-            int maxDay;
-
-            if (month == 2)
-            {
-                maxDay = 29;
-            }
-            else if (Array.Exists(monthsWith30Days, x => x == month))
-            {
-                maxDay = 31;
-            }
-            else
-            {
-                maxDay = 32;
-            }
-
-            int day = this._random.Next(1, maxDay);
+            int day = this._random.Next(1, DateTime.DaysInMonth(year, month) + 1);
 
             this.Birthdate = new Date(year, month, day);
             return this;
@@ -110,9 +103,15 @@ namespace FivePD.Common.Builders
 
         public FPedBuilder WithItems(List<Item> items)
         {
+            if (items == null || items.Count == 0)
+            {
+                this.Items = new List<Item>();
+                return this;
+            }
+
             this.Items = items
                 .Where(item => item.Location == Item.ItemLocation.Ped || item.Location == Item.ItemLocation.Everywhere)
-                .OrderBy(item => Guid.NewGuid())
+                .OrderBy(_ => Guid.NewGuid())
                 .Take(this._random.Next(0, 6))
                 .ToList();
             return this;
