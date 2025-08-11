@@ -27,6 +27,8 @@ namespace FivePD.Common.Models
         /// </summary>
         public BasePoliceEvent()
         {
+            this.Id = Guid.NewGuid().ToString();
+            this.AttachedPlayers = new List<int>();
         }
 
         /// <summary>
@@ -35,10 +37,10 @@ namespace FivePD.Common.Models
         /// <param name="mainPlayerNetworkId">The network identifier of the firstly attached player.</param>
         /// <param name="coordinate">The position of this event.</param>
         public BasePoliceEvent(int mainPlayerNetworkId, Vector3 coordinate)
+            : this()
         {
             this.MainPlayer = mainPlayerNetworkId;
             this.Coordinate = coordinate;
-            this.Id = Guid.NewGuid().ToString();
         }
 
         /// <summary>

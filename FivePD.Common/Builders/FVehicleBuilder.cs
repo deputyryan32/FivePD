@@ -53,33 +53,39 @@ namespace FivePD.Common.Builders
 
         public FVehicleBuilder WithPassengers(List<int> passengerNetworkIds)
         {
-            this.PassengerNetworkIds = passengerNetworkIds;
+            this.PassengerNetworkIds = passengerNetworkIds ?? new List<int>();
             return this;
         }
 
         public FVehicleBuilder WithLicensePlate(string licensePlate)
         {
-            this.LicensePlate = licensePlate;
+            this.LicensePlate = licensePlate ?? string.Empty;
             return this;
         }
 
         public FVehicleBuilder WithColor(string color)
         {
-            this.Color = color;
+            this.Color = color ?? string.Empty;
             return this;
         }
 
         public FVehicleBuilder WithBrand(string brand)
         {
-            this.Brand = brand;
+            this.Brand = brand ?? string.Empty;
             return this;
         }
 
         public FVehicleBuilder WithItems(List<Item> items)
         {
+            if (items == null || items.Count == 0)
+            {
+                this.Items = new List<Item>();
+                return this;
+            }
+
             this.Items = items
                 .Where(item => item.Location == Item.ItemLocation.Vehicle || item.Location == Item.ItemLocation.Everywhere)
-                .OrderBy(item => Guid.NewGuid())
+                .OrderBy(_ => Guid.NewGuid())
                 .Take(this._random.Next(0, 6))
                 .ToList();
             return this;
