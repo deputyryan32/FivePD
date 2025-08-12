@@ -37,7 +37,7 @@ namespace FivePD.Gamemode.Server
          */
         public FilesystemAddonLocator(ILogger logger)
         {
-            this._logger = logger;
+            this._logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         /**
@@ -52,7 +52,13 @@ namespace FivePD.Gamemode.Server
 
             foreach (var directory in AddonDirectories)
             {
-                var addonMetadataLocations = FindAddonsInDirectory(new DirectoryInfo(directory));
+                if (!Directory.Exists(directory))
+                {
+                    this._logger.Debug("Addon directory {Directory} does not exist, skipping", directory);
+                    continue;
+                }
+
+                var addonMetadataLocations = FindAddonsInDirectory(new DirectoryInfo(directory), this._logger);
 
                 foreach (var addonMetadataLocation in addonMetadataLocations)
                 {
@@ -94,7 +100,7 @@ namespace FivePD.Gamemode.Server
                             }
                             catch (Exception e)
                             {
-                                this._logger.Warning("Failed to read addon assembly file {Assembly}. {Message}", assembly, e.Message);
+                                this._logger.Warning(e, "Failed to read addon assembly file {Assembly}", assembly);
                             }
                         }
 
@@ -102,7 +108,7 @@ namespace FivePD.Gamemode.Server
                     }
                     catch (Exception e)
                     {
-                       this._logger.Warning("An exception occurred while loading the addon with metadata path {Path}. {Message}", addonMetadataLocation, e.Message);
+                       this._logger.Warning(e, "An exception occurred while loading the addon with metadata path {Path}", addonMetadataLocation);
                     }
                 }
             }
@@ -112,19 +118,25 @@ namespace FivePD.Gamemode.Server
             return definitions;
         }
 
-        private static IEnumerable<string> FindAddonsInDirectory(DirectoryInfo directory)
+        private static IEnumerable<string> FindAddonsInDirectory(DirectoryInfo directory, ILogger logger)
         {
             var addons = new List<string>();
-            foreach (var subdirectory in directory.GetDirectories())
+
+            try
             {
-                var metadataLocation = Path.Combine(subdirectory.ToString(), MetadataFileName);
-
-                if (!File.Exists(metadataLocation))
+                foreach (var subdirectory in directory.GetDirectories())
                 {
-                    continue;
-                }
+                    var metadataLocation = Path.Combine(subdirectory.FullName, MetadataFileName);
 
-                addons.Add(metadataLocation);
+                    if (File.Exists(metadataLocation))
+                    {
+                        addons.Add(metadataLocation);
+                    }
+                }
+            }
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+            {
+                logger.Warning(e, "Failed to enumerate addon directory {Directory}", directory.FullName);
             }
 
             return addons;
@@ -132,9 +144,19 @@ namespace FivePD.Gamemode.Server
 
         private static byte[] ValidateAssemblyAndReadBytes(string path)
         {
-            if (Path.GetExtension(path) != ".dll")
+            if (string.IsNullOrWhiteSpace(path))
             {
-                throw new ArgumentException("The provided file is not a library (DLL)");
+                throw new ArgumentException("Path cannot be null or whitespace", nameof(path));
+            }
+
+            if (!File.Exists(path))
+            {
+                throw new FileNotFoundException("The provided file does not exist", path);
+            }
+
+            if (!string.Equals(Path.GetExtension(path), ".dll", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException("The provided file is not a library (DLL)", nameof(path));
             }
 
             return File.ReadAllBytes(path);
